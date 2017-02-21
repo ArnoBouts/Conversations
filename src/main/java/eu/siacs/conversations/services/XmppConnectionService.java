@@ -2512,6 +2512,19 @@ public class XmppConnectionService extends Service {
 				if (packet.getType() == IqPacket.TYPE.RESULT && query != null) {
 					ArrayList<String> features = new ArrayList<>();
 					for (Element child : query.getChildren()) {
+						if(child != null && child.getName().equals("identity")) {
+							String category = child.getAttribute("category");
+							if("conference".equals(category)) {
+								String name = child.getAttribute("name");
+								if(name != null) {
+									conversation.getMucOptions().setSubject(name);
+									if(conversation.getBookmark() != null) {
+										conversation.getBookmark().setBookmarkName(name);
+										pushBookmarks(conversation.getAccount());
+									}
+								}
+							}
+						}
 						if (child != null && child.getName().equals("feature")) {
 							String var = child.getAttribute("var");
 							if (var != null) {
