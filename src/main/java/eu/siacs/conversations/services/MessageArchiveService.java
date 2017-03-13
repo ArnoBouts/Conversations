@@ -14,7 +14,7 @@ import eu.siacs.conversations.R;
 import eu.siacs.conversations.entities.Account;
 import eu.siacs.conversations.entities.Conversation;
 import eu.siacs.conversations.generator.AbstractGenerator;
-import eu.siacs.conversations.utils.Xmlns;
+import eu.siacs.conversations.xml.Namespace;
 import eu.siacs.conversations.xml.Element;
 import eu.siacs.conversations.xmpp.OnAdvancedStreamFeaturesLoaded;
 import eu.siacs.conversations.xmpp.OnIqPacketReceived;
@@ -156,7 +156,7 @@ public class MessageArchiveService implements OnAdvancedStreamFeaturesLoaded {
 			this.mXmppConnectionService.sendIqPacket(account, packet, new OnIqPacketReceived() {
 				@Override
 				public void onIqPacketReceived(Account account, IqPacket packet) {
-					Element fin = packet.findChild("fin", Xmlns.MAM);
+					Element fin = packet.findChild("fin", Namespace.MAM);
 					if (packet.getType() == IqPacket.TYPE.TIMEOUT) {
 						synchronized (MessageArchiveService.this.queries) {
 							MessageArchiveService.this.queries.remove(query);
@@ -246,7 +246,7 @@ public class MessageArchiveService implements OnAdvancedStreamFeaturesLoaded {
 			final boolean done = (complete || query.getActualMessageCount() == 0) && !query.isCatchup();
 			this.finalizeQuery(query, done);
 			Log.d(Config.LOGTAG,query.getAccount().getJid().toBareJid()+": finished mam after "+query.getTotalCount()+"("+query.getActualMessageCount()+") messages. messages left="+Boolean.toString(!done));
-			if (query.getWith() == null && query.getActualMessageCount() > 0) {
+			if (query.isCatchup() && query.getActualMessageCount() > 0) {
 				mXmppConnectionService.getNotificationService().finishBacklog(true,query.getAccount());
 			}
 		} else {

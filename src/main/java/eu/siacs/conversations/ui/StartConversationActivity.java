@@ -299,6 +299,15 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
         super.onStop();
     }
 
+    @Override
+    public void onNewIntent(Intent intent) {
+        if (xmppConnectionServiceBound) {
+            handleIntent(intent);
+        } else {
+            setIntent(intent);
+        }
+    }
+
     protected void openConversationForContact(int position) {
         Contact contact = (Contact) contacts.get(position);
         openConversationForContact(contact);
@@ -365,7 +374,7 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 
     protected void toggleContactBlock() {
         final int position = contact_context_id;
-        BlockContactDialog.show(this, xmppConnectionService, (Contact) contacts.get(position));
+        BlockContactDialog.show(this, (Contact) contacts.get(position));
     }
 
     protected void deleteContact() {
