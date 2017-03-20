@@ -37,6 +37,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
@@ -53,6 +54,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import eu.siacs.conversations.Config;
 import eu.siacs.conversations.R;
 import eu.siacs.conversations.entities.Account;
+import eu.siacs.conversations.entities.Blockable;
 import eu.siacs.conversations.entities.Contact;
 import eu.siacs.conversations.entities.Conversation;
 import eu.siacs.conversations.entities.DownloadableFile;
@@ -345,8 +347,8 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 					case CANCEL:
 						if (conversation != null) {
 							if(conversation.setCorrectingMessage(null)) {
-								mEditMessage.getEditableText().clear();
-								mEditMessage.getEditableText().append(conversation.getDraftMessage());
+								mEditMessage.setText("");
+								mEditMessage.append(conversation.getDraftMessage());
 								conversation.setDraftMessage(null);
 							} else if (conversation.getMode() == Conversation.MODE_MULTI) {
 								conversation.setNextCounterpart(null);
@@ -815,8 +817,6 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 		Transferable transferable = message.getTransferable();
 		if (transferable != null) {
 			transferable.cancel();
-		} else {
-			activity.xmppConnectionService.markMessage(message, Message.STATUS_SEND_FAILED);
 		}
 	}
 
@@ -831,7 +831,7 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 		if (conversation.setOutgoingChatState(Config.DEFAULT_CHATSTATE)) {
 			activity.xmppConnectionService.sendChatState(conversation);
 		}
-		this.mEditMessage.getEditableText().clear();
+		this.mEditMessage.setText("");
 		this.conversation.setNextCounterpart(counterpart);
 		updateChatMsgHint();
 		updateSendButton();
@@ -844,8 +844,8 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 		this.conversation.setCorrectingMessage(message);
 		final Editable editable = mEditMessage.getText();
 		this.conversation.setDraftMessage(editable.toString());
-		this.mEditMessage.getEditableText().clear();
-		this.mEditMessage.getEditableText().append(message.getBody());
+		this.mEditMessage.setText("");
+		this.mEditMessage.append(message.getBody());
 
 	}
 
@@ -959,8 +959,30 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 
 	private OnClickListener mBlockClickListener = new OnClickListener() {
 		@Override
-		public void onClick(final View v) {
-			BlockContactDialog.show(activity, conversation);
+		public void onClick(final View view) {
+			final Jid jid = conversation.getJid();
+			if (jid.isDomainJid()) {
+				BlockContactDialog.show(activity, conversation);
+			} else {
+				PopupMenu popupMenu = new PopupMenu(activity, view);
+				popupMenu.inflate(R.menu.block);
+				popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+					@Override
+					public boolean onMenuItemClick(MenuItem menuItem) {
+						Blockable blockable;
+						switch (menuItem.getItemId()) {
+							case R.id.block_domain:
+								blockable = conversation.getAccount().getRoster().getContact(jid.toDomainJid());
+								break;
+							default:
+								blockable = conversation;
+						}
+						BlockContactDialog.show(activity, blockable);
+						return true;
+					}
+				});
+				popupMenu.show();
+			}
 		}
 	};
 
@@ -1003,6 +1025,7 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 
 	private void updateSnackBar(final Conversation conversation) {
 		final Account account = conversation.getAccount();
+		final XmppConnection connection = account.getXmppConnection();
 		final int mode = conversation.getMode();
 		final Contact contact = mode == Conversation.MODE_SINGLE ? conversation.getContact() : null;
 		if (account.getStatus() == Account.State.DISABLED) {
@@ -1057,7 +1080,9 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 				&& (conversation.getOtrSession().getSessionStatus() == SessionStatus.ENCRYPTED)
 				&& (!conversation.isOtrFingerprintVerified())) {
 			showSnackbar(R.string.unknown_otr_fingerprint, R.string.verify, clickToVerify);
-		} else if (conversation.countMessages() != 0
+		} else if (connection != null
+				&& connection.getFeatures().blocking()
+				&& conversation.countMessages() != 0
 				&& !conversation.isBlocked()
 				&& conversation.isWithStranger()) {
 			showSnackbar(R.string.received_message_from_stranger,R.string.block, mBlockClickListener);
@@ -1088,10 +1113,9 @@ public class ConversationFragment extends Fragment implements EditMessage.Keyboa
 
 	protected void messageSent() {
 		mSendingPgpMessage.set(false);
-		Editable editable = mEditMessage.getEditableText();
-		editable.clear();
+		mEditMessage.setText("");
 		if (conversation.setCorrectingMessage(null)) {
-			editable.append(conversation.getDraftMessage());
+			mEditMessage.append(conversation.getDraftMessage());
 			conversation.setDraftMessage(null);
 		}
 		updateChatMsgHint();

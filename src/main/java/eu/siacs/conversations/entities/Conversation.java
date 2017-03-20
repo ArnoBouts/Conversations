@@ -481,6 +481,8 @@ public class Conversation extends AbstractEntity implements Blockable, Comparabl
 					return getJid().getUnescapedLocalpart();
 				}
 			}
+		} else if (isWithStranger()) {
+			return contactJid.toBareJid().toString();
 		} else {
 			return this.getContact().getDisplayName();
 		}
@@ -1005,11 +1007,10 @@ public class Conversation extends AbstractEntity implements Blockable, Comparabl
 	}
 
 	public boolean isWithStranger() {
-		if (mode == MODE_SINGLE) {
-			return !getContact().mutualPresenceSubscription() && sentMessagesCount() == 0;
-		} else {
-			return false;
-		}
+		return mode == MODE_SINGLE
+				&& !getJid().equals(account.getJid().toDomainJid())
+				&& !getContact().showInRoster()
+				&& sentMessagesCount() == 0;
 	}
 
 	public class Smp {
