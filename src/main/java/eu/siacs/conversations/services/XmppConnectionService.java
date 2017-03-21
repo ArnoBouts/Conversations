@@ -3274,7 +3274,7 @@ public class XmppConnectionService extends Service {
 	}
 
 	public boolean broadcastLastActivity() {
-		return getPreferences().getBoolean("last_activity", false);
+		return getPreferences().getBoolean(SettingsActivity.BROADCAST_LAST_ACTIVITY, false);
 	}
 
 	public int unreadCount() {
@@ -3540,7 +3540,7 @@ public class XmppConnectionService extends Service {
 		}
 		if (mLastActivity > 0 && includeIdleTimestamp) {
 			long since = Math.min(mLastActivity, System.currentTimeMillis()); //don't send future dates
-			packet.addChild("idle","urn:xmpp:idle:1").setAttribute("since", AbstractGenerator.getTimestamp(since));
+			packet.addChild("idle",Namespace.IDLE).setAttribute("since", AbstractGenerator.getTimestamp(since));
 		}
 		sendPresencePacket(account, packet);
 	}
