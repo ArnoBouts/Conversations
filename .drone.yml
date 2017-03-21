@@ -1,0 +1,6 @@
+pipeline:
+  build:
+    image: livexp/android-sdk
+    commands:
+      - docker-android-sdk-install tools,build-tools-25.0.2,extra-android-m2repository,extra-google-m2repository
+      - ./gradlew assemble
